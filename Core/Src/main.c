@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stm32_tm1637.h"
+#include "bh1750.h"
 
 /* USER CODE END Includes */
 
