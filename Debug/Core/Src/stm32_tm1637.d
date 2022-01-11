@@ -1,4 +1,4 @@
-Core/Inc/stm32_tm1637.o: ../Core/Inc/stm32_tm1637.c \
+Core/Src/stm32_tm1637.o: ../Core/Src/stm32_tm1637.c \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32F7xx_hal.h \
  ../Core/Inc/stm32f7xx_hal_conf.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_rcc.h \

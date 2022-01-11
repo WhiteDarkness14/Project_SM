@@ -17,10 +17,10 @@ void _tm1637DioLow(void);
 // Wybrac I2C, (SDA SCL) i ustawić np. PB9: #define CLK_PORT GPIO(B),  #define CLK_PIN GPIO_PIN_(9)  bez nawiasów ofc
 
 
-#define CLK_PORT GPIOC
-#define DIO_PORT GPIOC
-#define CLK_PIN GPIO_PIN_0
-#define DIO_PIN GPIO_PIN_1
+#define CLK_PORT GPIOF
+#define DIO_PORT GPIOF
+#define CLK_PIN GPIO_PIN_14
+#define DIO_PIN GPIO_PIN_15
 #define CLK_PORT_CLK_ENABLE __HAL_RCC_GPIOC_CLK_ENABLE
 #define DIO_PORT_CLK_ENABLE __HAL_RCC_GPIOC_CLK_ENABLE
 

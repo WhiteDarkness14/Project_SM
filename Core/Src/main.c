@@ -21,9 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "stm32_tm1637.h"
+#include "stm32_tm1637.h"
 #include "bh1750.h"
-
+#include "PID.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,6 +44,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c4;
 
 TIM_HandleTypeDef htim1;
 
@@ -51,10 +53,12 @@ UART_HandleTypeDef huart3;
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-float BH1750_lux;
-uint16_t ster = 0;
-float zadana = 200.f;
-
+float measure;
+uint16_t u;
+float yr = 50;
+PIDController pid;
+const char text[20];
+int licznik = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,6 +68,7 @@ static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_I2C4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -105,19 +110,36 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
+  MX_I2C4_Init();
   /* USER CODE BEGIN 2 */
   BH1750_Init(&hi2c1);
   BH1750_SetMode(CONTINUOUS_HIGH_RES_MODE_2);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  PIDController_Init(&pid);
+  tm1637Init();
+    // Optionally set brightness. 0 is off. By default, initialized to full brightness.
+  tm1637SetBrightness(3);
+    // Display the value "1234" and turn on the `:` that is between digits 2 and 3.
+  tm1637DisplayDecimal(9999, 1);
   /* USER CODE END 2 */
-
+  HAL_Delay(1000);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  BH1750_ReadLight(&BH1750_lux);
-	  float e = zadana - BH1750_lux;
-	  HAL_Delay(2)
+	  BH1750_ReadLight(&measure);
+	  u = (uint16_t)PIDController_Update(&pid, yr, measure);
+	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, u);
+	  if(licznik == 499){
+		  sprintf((char*)text, "%.2f, ", measure);
+		  HAL_UART_Transmit(&huart3, (uint8_t*)text, strlen(text), 500);
+		  sprintf((char*)text, "%d, ", u);
+		  HAL_UART_Transmit(&huart3, (uint8_t*)text, strlen(text), 500);
+	  }
+	  //HAL_Delay(10);
+	  licznik++;
+	  licznik = licznik%500;
+	  tm1637DisplayDecimal((int)measure, 0);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -214,6 +236,52 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief I2C4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C4_Init(void)
+{
+
+  /* USER CODE BEGIN I2C4_Init 0 */
+
+  /* USER CODE END I2C4_Init 0 */
+
+  /* USER CODE BEGIN I2C4_Init 1 */
+
+  /* USER CODE END I2C4_Init 1 */
+  hi2c4.Instance = I2C4;
+  hi2c4.Init.Timing = 0x00808CD2;
+  hi2c4.Init.OwnAddress1 = 0;
+  hi2c4.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c4.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c4.Init.OwnAddress2 = 0;
+  hi2c4.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c4.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c4.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c4, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c4, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C4_Init 2 */
+
+  /* USER CODE END I2C4_Init 2 */
 
 }
 
@@ -381,6 +449,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
