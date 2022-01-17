@@ -56,12 +56,15 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 /* USER CODE BEGIN PV */
 float measure;
 uint16_t u;
-float yr = 50;
+float yr = 200;
 PIDController pid;
 const char text[20];
 int licznik = 0;
 int wyswietlacz = 0;
 float wyswietlaczf = 0.0;
+uint8_t key[1];
+float limitMin;
+float limitMax;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -79,7 +82,13 @@ static void MX_I2C2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+       switch (key[0]) {
+             case 'q': yr += 10; if(yr > limitMax) yr = limitMax;   break;
+             case 'e': yr -= 10; if(yr < limitMin) yr = limitMin;   break;
+       }
+       HAL_UART_Receive_IT(&huart3, key, 1);
+}
 /* USER CODE END 0 */
 
 /**
@@ -121,10 +130,18 @@ int main(void)
   BH1750_SetMode(CONTINUOUS_HIGH_RES_MODE_2);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   PIDController_Init(&pid);
-
+  HAL_UART_Receive_IT(&huart3, key, 1);
   tm1637Init();
   tm1637SetBrightness(3);
-  tm1637DisplayDecimal(1234, 1);
+//  tm1637DisplayDecimal(1234, 1);
+  float light;
+	HAL_Delay(1000);
+	BH1750_ReadLight(&light);
+	limitMin = light;
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 1000);
+	HAL_Delay(1000);
+	BH1750_ReadLight(&light);
+	limitMax = light;
   HAL_Delay(1000);
   /* USER CODE END 2 */
 
@@ -139,9 +156,17 @@ int main(void)
 	  wyswietlaczf = measure*10;
 	  wyswietlacz = wyswietlaczf;
 	  tm1637DisplayDecimal(wyswietlacz, 0);
-	  uint8_t yr_ = yr;
-	  sprintf((char*)text, "%.2f,%d,%d \n", measure, u, yr_);
+	  sprintf((char*)text, "%.2f,%d,%.2f \n", measure, u, yr);
 	  HAL_UART_Transmit(&huart3, (uint8_t*)text, strlen(text), 500);
+//	  uint8_t key[1];
+//	  	  HAL_StatusTypeDef status = HAL_UART_Receive(&huart3, key, 1, 1);
+//	  	  if (status == HAL_OK)
+//	  	  {
+//	  		  switch (key[0]) {
+//	  		  case 'q' : yr += 10.f; break;
+//	  		  case 'e' : yr -= 10.f; break;
+//	  		  }
+//	  	  }
 
     /* USER CODE END WHILE */
 
